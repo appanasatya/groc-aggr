@@ -8,6 +8,7 @@
     <artifactId>groc-aggr</artifactId>
     <version>1.0-SNAPSHOT</version>
 
+
     <dependencies>
         <dependency>
             <groupId>io.dropwizard</groupId>
