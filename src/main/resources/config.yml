@@ -1,0 +1,26 @@
+server:
+  adminMinThreads: 8
+  adminMaxThreads: 8
+  minThreads: 8
+  maxThreads: 8
+  applicationContextPath: /
+  applicationConnectors:
+    - type: http
+      port: 9090
+      acceptorThreads: 1
+      selectorThreads: 1
+  adminConnectors:
+    - type: http
+      port: 9091
+      acceptorThreads: 1
+      selectorThreads: 1
+  maxQueuedRequests: 1024
+  gzip:
+    enabled: false
+  requestLog:
+      appenders:
+        - type: console
+        - type: file
+          archive: false
+          currentLogFilename: /tmp/groc.log
+          timeZone: Asia/Kolkata
