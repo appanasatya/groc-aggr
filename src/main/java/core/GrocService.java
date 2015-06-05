@@ -4,7 +4,7 @@ import io.dropwizard.Application;
 import io.dropwizard.forms.MultiPartBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
-import resources.UserResource;
+import resources.GroceryResource;
 
 public class GrocService extends Application<ServiceConfiguration>{
 
@@ -18,7 +18,7 @@ public class GrocService extends Application<ServiceConfiguration>{
      */
     @Override
     public void run(ServiceConfiguration configuration, Environment environment) throws Exception {
-        environment.jersey().register(new UserResource());
+        environment.jersey().register(new GroceryResource());
     }
 
     @Override
