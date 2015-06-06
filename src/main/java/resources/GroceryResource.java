@@ -1,8 +1,6 @@
 package resources;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import core.ElasticSearchDao;
 import data.Product;
 import data.StoreProductList;
@@ -20,6 +18,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Produces(value = MediaType.APPLICATION_JSON)
@@ -32,6 +31,7 @@ public class GroceryResource {
     private static ElasticSearchDao elasticSearchDao = null;
     public static final String SINGLECOLUMN_QUERY_TEMPLATE =
             "{\"query\":{\"filtered\":{\"query\":{\"match\":{\"%s\":\"%s\"}}}}}";
+    public static final String MATCH_ALL = "{\"query\":{\"match_all\":{}}}";
 
     @GET
     @Path("/superCategories")
@@ -41,11 +41,10 @@ public class GroceryResource {
         final String elasticSearchType = "shop_eazy_data";
         Set<String> superCategories = new HashSet<String>();
         ElasticSearchDao elasticSearchDao = getElasticSearchDao();
-        String jsonQuery = getJsonQuery("unit", "g");
-        SearchResponse searchResponse = elasticSearchDao.execute(elasticSearchIndex, elasticSearchType, jsonQuery);
+        SearchResponse searchResponse = elasticSearchDao.execute(elasticSearchIndex, elasticSearchType, MATCH_ALL);
         SearchHit[] searchHits = searchResponse.getHits().getHits();
         for (SearchHit searchHit : searchHits) {
-            superCategories.add(searchHit.getSource().get("brand").toString());
+            superCategories.add(searchHit.getSource().get("super_category").toString());
         }
         return superCategories;
     }
@@ -65,14 +64,57 @@ public class GroceryResource {
     @Path("/categories/{superCategory}")
     @Produces(MediaType.APPLICATION_JSON)
     public Set<String> getCategories(@PathParam("superCategory") String superCategory) {
-        return ImmutableSet.of();
+        final String elasticSearchIndex = "shop_eazy";
+        final String elasticSearchType = "shop_eazy_data";
+        Set<String> categories = new HashSet<String>();
+        ElasticSearchDao elasticSearchDao = getElasticSearchDao();
+        String jsonQuery = getJsonQuery("super_category", superCategory);
+        SearchResponse searchResponse = elasticSearchDao.execute(elasticSearchIndex, elasticSearchType, jsonQuery);
+        SearchHit[] searchHits = searchResponse.getHits().getHits();
+        for (SearchHit searchHit : searchHits) {
+            categories.add(searchHit.getSource().get("category").toString());
+        }
+        return categories;
     }
 
     @GET
     @Path("/products/{category}")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Product> getProducts(@PathParam("category") String category) {
-        return ImmutableList.of();
+    public Set<Product> getProducts(@PathParam("category") String category) {
+        final String elasticSearchIndex = "shop_eazy";
+        final String elasticSearchType = "shop_eazy_data";
+        Set<Product> products = new HashSet<Product>();
+        ElasticSearchDao elasticSearchDao = getElasticSearchDao();
+        String jsonQuery = getJsonQuery("category",category);
+        SearchResponse searchResponse = elasticSearchDao.execute(elasticSearchIndex, elasticSearchType,jsonQuery);
+        SearchHit[] searchHits = searchResponse.getHits().getHits();
+        for (SearchHit searchHit : searchHits) {
+            products.add(getProduct(searchHit));
+        }
+        return products;
+    }
+
+    private Product getProduct(SearchHit searchHit) {
+        double minStorePrice = Integer.MAX_VALUE;
+        double maxStorePrice = 0;
+//        ObjectMapper objectMapper = new ObjectMapper();
+
+//            List<Store> stores = objectMapper.readValue(searchHit.getSource().get("stores").toString(),
+//                    objectMapper.getTypeFactory().constructCollectionType(List.class, Store.class));
+            List<Map<String,String>> stores = (List<Map<String,String>>) searchHit.getSource().get("stores");
+            for (Map store : stores) {
+                double storePrice = (Double) store.get("price");
+                if (minStorePrice > storePrice  ) {
+                    minStorePrice = storePrice;
+                }
+                if (maxStorePrice < storePrice) {
+                    maxStorePrice = storePrice;
+                }
+            }
+        return new Product(searchHit.getId().toString(),searchHit.getSource().get("super_category").toString(),
+                searchHit.getSource().get("category").toString(),searchHit.getSource().get("name").toString(),
+                searchHit.getSource().get("brand").toString(),searchHit.getSource().get("volume").toString(),
+                minStorePrice,maxStorePrice);
     }
 
     @POST
