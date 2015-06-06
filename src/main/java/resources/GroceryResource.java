@@ -170,8 +170,42 @@ public class GroceryResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public SurpriseListOfStores getSmartBaskets(UserProductList userProductList) {
-        //No need to Insert requestPayload into Es
-        //Compute Surprise List and pass on to UI
-        return null;
+
+        Double totalAmount = 0.0;
+        final String elasticSearchIndex = "shop_eazy";
+        final String elasticSearchType = "shop_eazy_data";
+        Map<String, StoreProductList> storeProductListMap = Maps.newHashMap();
+        ElasticSearchDao elasticSearchDao = getElasticSearchDao();
+        Map<String, Integer> producQtyMap = Maps.newHashMap();
+        for (String prodId : userProductList.productIds) {
+            if(producQtyMap.containsKey(prodId)) {
+                producQtyMap.put(prodId,producQtyMap.get(prodId) + 1);
+            }
+            else {
+                producQtyMap.put(prodId,1);
+            }
+        }
+        String jsonQuery = getInQuery(producQtyMap.keySet());
+        SearchResponse searchResponse = elasticSearchDao.execute(elasticSearchIndex, elasticSearchType, jsonQuery);
+        SearchHit[] searchHits = searchResponse.getHits().getHits();
+        for (SearchHit searchHit : searchHits) {
+            List<Map<String, Object>> stores = (List<Map<String,Object>>) searchHit.getSource().get("stores");
+            double minStorePrice = Integer.MAX_VALUE;
+            String minStoreName = "";
+            for (Map<String,Object> store : stores) {
+                if (!storeProductListMap.keySet().contains(store.get("store_name"))) {
+                    storeProductListMap.put((String)store.get("store_name"), new StoreProductList((String)store.get("store_name")));
+                }
+                if (minStorePrice > (Double) store.get("price")) {
+                    minStorePrice = (Double) store.get("price");
+                    minStoreName = (String)store.get("store_name");
+                }
+            }
+            StoreProductList storeProductList = storeProductListMap.get(minStoreName);
+            storeProductList.addProduct(searchHit.getId());
+            storeProductList.addToTotal(producQtyMap.get(searchHit.getId()) * minStorePrice);
+            totalAmount = totalAmount +  producQtyMap.get(searchHit.getId()) * minStorePrice;
+        }
+        return new SurpriseListOfStores(Lists.newArrayList(storeProductListMap.values()),totalAmount);
     }
 }
