@@ -1,12 +1,10 @@
 package data;
 
-import java.util.List;
+import java.util.Map;
 
 public class UserProductList {
 
-    private String userName;
+    public String userName;
 
-    private Long timestampId;
-
-    private List<Long> productIds;
+    public Map<String, Integer> producQtyMap;
 }

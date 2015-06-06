@@ -1,6 +1,8 @@
 package resources;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import core.ElasticSearchDao;
 import data.Product;
@@ -9,6 +11,7 @@ import data.SurpriseListOfStores;
 import data.UserProductList;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.search.SearchHit;
+import static utils.ZopNowKitchenIndexer.Store;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -32,6 +35,8 @@ public class GroceryResource {
     private static ElasticSearchDao elasticSearchDao = null;
     public static final String SINGLECOLUMN_QUERY_TEMPLATE =
             "{\"query\":{\"filtered\":{\"query\":{\"match\":{\"%s\":\"%s\"}}}}}";
+    public static final String IN_QUERY_TEMPLATE = 
+            "{\"query\":{\"bool\":{\"must\":[{\"ids\": {\"type\" : \"shop_eazy_data\", \"values\" : %s}}],\"must_not\":[],\"should\":[]}},\"from\":0,\"sort\":[],\"facets\":{}}";
     public static final String MATCH_ALL = "{\"query\":{\"match_all\":{}}}";
 
     @GET
@@ -126,7 +131,30 @@ public class GroceryResource {
     public List<StoreProductList> getAllStoreBaskets(UserProductList userProductList) {
         //Insert the request payload into elasticSearch
         //and compute allStoreBaskets and return the same
-        return null;
+        final String elasticSearchIndex = "shop_eazy";
+        final String elasticSearchType = "shop_eazy_data";
+        Map<String, StoreProductList> storeProductListMap = Maps.newHashMap();
+        ElasticSearchDao elasticSearchDao = getElasticSearchDao();
+        String jsonQuery = getInQuery(userProductList.producQtyMap.keySet());
+        SearchResponse searchResponse = elasticSearchDao.execute(elasticSearchIndex, elasticSearchType, jsonQuery);
+        SearchHit[] searchHits = searchResponse.getHits().getHits();
+        for (SearchHit searchHit : searchHits) {
+            List<Map<String, Object>> stores = (List<Map<String,Object>>) searchHit.getSource().get("stores");
+            for (Map<String,Object> store : stores) {
+                if (!storeProductListMap.keySet().contains(store.get("store_name"))) {
+                    storeProductListMap.put((String)store.get("store_name"), new StoreProductList((String)store.get("store_name")));
+                }
+                StoreProductList storeProductList = storeProductListMap.get((String)store.get("store_name"));
+                storeProductList.addProduct(searchHit.getId());
+                storeProductList.addToTotal(userProductList.producQtyMap.get(searchHit.getId()) * (Double)store.get("price"));
+            }
+        }
+        return Lists.newArrayList(storeProductListMap.values());
+    }
+
+    private String getInQuery(Set<String> productNames) {
+        String value = "[\"" + Joiner.on("\",\"").join(productNames) + "\"]";
+        return String.format(IN_QUERY_TEMPLATE,value);
     }
 
     @POST

@@ -174,13 +174,44 @@ public class ZopNowKitchenIndexer {
         }
     }
 
-    private static class Store{
+    public static class Store{
         public String store_name;
         public double price;
 
         public Store(String store_name, double price) {
             this.store_name = store_name;
             this.price = price;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Store)) return false;
+
+            Store store = (Store) o;
+
+            if (Double.compare(store.price, price) != 0) return false;
+            if (!store_name.equals(store.store_name)) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result;
+            long temp;
+            result = store_name.hashCode();
+            temp = Double.doubleToLongBits(price);
+            result = 31 * result + (int) (temp ^ (temp >>> 32));
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "Store{" +
+                    "store_name='" + store_name + '\'' +
+                    ", price=" + price +
+                    '}';
         }
     }
 }
