@@ -1,6 +1,7 @@
 package resources;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Maps;
 import core.ElasticSearchDao;
 import data.Product;
 import data.StoreProductList;
@@ -36,15 +37,16 @@ public class GroceryResource {
     @GET
     @Path("/superCategories")
     @Produces(MediaType.APPLICATION_JSON)
-    public Set<String> getSuperCategories() {
+    public Map<String, Set<String>> getSuperCategories() {
         final String elasticSearchIndex = "shop_eazy";
         final String elasticSearchType = "shop_eazy_data";
-        Set<String> superCategories = new HashSet<String>();
+        Map<String, Set<String>> superCategories = Maps.newHashMap();
         ElasticSearchDao elasticSearchDao = getElasticSearchDao();
         SearchResponse searchResponse = elasticSearchDao.execute(elasticSearchIndex, elasticSearchType, MATCH_ALL);
         SearchHit[] searchHits = searchResponse.getHits().getHits();
         for (SearchHit searchHit : searchHits) {
-            superCategories.add(searchHit.getSource().get("super_category").toString());
+            String superCategory = searchHit.getSource().get("super_category").toString();
+            superCategories.put(superCategory, getCategories(superCategory));
         }
         return superCategories;
     }

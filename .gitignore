@@ -1,0 +1,10 @@
+.idea
+*.iml
+*.project
+target
+*~
+*.bak
+.settings
+.classpath
+dependency-reduced-pom.xml
+.DS*
