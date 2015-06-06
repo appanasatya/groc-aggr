@@ -11,7 +11,6 @@ import data.SurpriseListOfStores;
 import data.UserProductList;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.search.SearchHit;
-import static utils.ZopNowKitchenIndexer.Store;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -135,7 +134,16 @@ public class GroceryResource {
         final String elasticSearchType = "shop_eazy_data";
         Map<String, StoreProductList> storeProductListMap = Maps.newHashMap();
         ElasticSearchDao elasticSearchDao = getElasticSearchDao();
-        String jsonQuery = getInQuery(userProductList.producQtyMap.keySet());
+        Map<String, Integer> producQtyMap = Maps.newHashMap();
+        for (String prodId : userProductList.productIds) {
+            if(producQtyMap.containsKey(prodId)) {
+                producQtyMap.put(prodId,producQtyMap.get(prodId) + 1);
+            }
+            else {
+                producQtyMap.put(prodId,1);
+            }
+        }
+        String jsonQuery = getInQuery(producQtyMap.keySet());
         SearchResponse searchResponse = elasticSearchDao.execute(elasticSearchIndex, elasticSearchType, jsonQuery);
         SearchHit[] searchHits = searchResponse.getHits().getHits();
         for (SearchHit searchHit : searchHits) {
@@ -146,7 +154,7 @@ public class GroceryResource {
                 }
                 StoreProductList storeProductList = storeProductListMap.get((String)store.get("store_name"));
                 storeProductList.addProduct(searchHit.getId());
-                storeProductList.addToTotal(userProductList.producQtyMap.get(searchHit.getId()) * (Double)store.get("price"));
+                storeProductList.addToTotal(producQtyMap.get(searchHit.getId()) * (Double)store.get("price"));
             }
         }
         return Lists.newArrayList(storeProductListMap.values());

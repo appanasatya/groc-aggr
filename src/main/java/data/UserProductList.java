@@ -1,10 +1,12 @@
 package data;
 
-import java.util.Map;
+import java.util.List;
 
 public class UserProductList {
 
     public String userName;
 
-    public Map<String, Integer> producQtyMap;
+    public List<String> productIds;
+
+
 }
