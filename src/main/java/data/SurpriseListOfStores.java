@@ -4,11 +4,13 @@ import java.util.List;
 
 public class SurpriseListOfStores {
     public List<StoreProductList> storeProductLists;
-    public Double totalSurpriseAmount;
+    public Double finalAmount;
+    public Double totalSavedAmount;
 
-    public SurpriseListOfStores(List<StoreProductList> storeProductLists,Double totalSurpriseAmount) {
+    public SurpriseListOfStores(List<StoreProductList> storeProductLists,Double finalAmount,Double totalSavedAmount) {
         this.storeProductLists = storeProductLists;
-        this.totalSurpriseAmount = totalSurpriseAmount;
+        this.finalAmount = finalAmount;
+        this.totalSavedAmount = totalSavedAmount;
     }
 
     public SurpriseListOfStores() {

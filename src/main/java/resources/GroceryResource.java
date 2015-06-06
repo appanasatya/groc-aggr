@@ -171,6 +171,7 @@ public class GroceryResource {
     @Produces(MediaType.APPLICATION_JSON)
     public SurpriseListOfStores getSmartBaskets(UserProductList userProductList) {
 
+        Double totalSavedAmount = 0.0;
         Double totalAmount = 0.0;
         final String elasticSearchIndex = "shop_eazy";
         final String elasticSearchType = "shop_eazy_data";
@@ -190,6 +191,7 @@ public class GroceryResource {
         SearchHit[] searchHits = searchResponse.getHits().getHits();
         for (SearchHit searchHit : searchHits) {
             List<Map<String, Object>> stores = (List<Map<String,Object>>) searchHit.getSource().get("stores");
+            double maxStorePrice = Integer.MIN_VALUE;
             double minStorePrice = Integer.MAX_VALUE;
             String minStoreName = "";
             for (Map<String,Object> store : stores) {
@@ -200,12 +202,17 @@ public class GroceryResource {
                     minStorePrice = (Double) store.get("price");
                     minStoreName = (String)store.get("store_name");
                 }
+                if (maxStorePrice < (Double) store.get("price")) {
+                    maxStorePrice = (Double) store.get("price");
+                }
             }
             StoreProductList storeProductList = storeProductListMap.get(minStoreName);
             storeProductList.addProduct(searchHit.getId());
+            storeProductList.addToSaving(producQtyMap.get(searchHit.getId()) * (maxStorePrice - minStorePrice));
+            totalSavedAmount = totalSavedAmount + producQtyMap.get(searchHit.getId()) * (maxStorePrice - minStorePrice);
             storeProductList.addToTotal(producQtyMap.get(searchHit.getId()) * minStorePrice);
             totalAmount = totalAmount +  producQtyMap.get(searchHit.getId()) * minStorePrice;
         }
-        return new SurpriseListOfStores(Lists.newArrayList(storeProductListMap.values()),totalAmount);
+        return new SurpriseListOfStores(Lists.newArrayList(storeProductListMap.values()),totalAmount,totalSavedAmount);
     }
 }
